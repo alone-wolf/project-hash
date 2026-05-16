@@ -117,6 +117,23 @@ Use a different config path:
 project-hash -c /path/to/project-hash.yaml -u api-server
 ```
 
+## Makefile Template
+
+A ready-to-copy Makefile template is available at `assets/Makefile.template`.
+
+It shows how to:
+
+- call `project-hash` directly from Make
+- skip a build when the current unit hash matches the previous recorded hash
+- inspect the current unit with `print-hash`, `list-files`, and `explain`
+
+The main variables to customize are:
+
+- `UNIT`: unit name from `project-hash.yaml`
+- `BUILD_CMD`: the real build command to run when inputs changed
+- `CONFIG`: optional config path; leave empty to use `./project-hash.yaml`
+- `STATE_DIR`: where previous hashes are stored
+
 ## Config File Format
 
 The config file is YAML with top-level `version` and `units`.

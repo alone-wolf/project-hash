@@ -1,0 +1,63 @@
+SHELL := /bin/sh
+
+PROJECT_HASH ?= project-hash
+# Leave CONFIG empty to use project-hash's default ./project-hash.yaml.
+CONFIG ?=
+UNIT ?= web-ui
+STATE_DIR ?= .cache/project-hash
+STATE_FILE ?= $(STATE_DIR)/$(UNIT).hash
+BUILD_CMD ?= printf '%s\n' "replace BUILD_CMD with your real build command"
+
+CONFIG_FLAG = $(if $(strip $(CONFIG)),-c $(CONFIG),)
+
+.PHONY: help print-hash list-files explain build-if-changed force-build clean-state
+
+help:
+	@printf '%s\n' 'Targets:'
+	@printf '%s\n' '  make build-if-changed UNIT=<unit> BUILD_CMD="<command>"'
+	@printf '%s\n' '  make force-build UNIT=<unit> BUILD_CMD="<command>"'
+	@printf '%s\n' '  make print-hash UNIT=<unit>'
+	@printf '%s\n' '  make list-files UNIT=<unit>'
+	@printf '%s\n' '  make explain UNIT=<unit>'
+	@printf '%s\n' 'Variables:'
+	@printf '%s\n' '  PROJECT_HASH  project-hash binary path or name (default: project-hash)'
+	@printf '%s\n' '  CONFIG        config file path; leave empty to use ./project-hash.yaml'
+	@printf '%s\n' '  UNIT          unit name from project-hash.yaml'
+	@printf '%s\n' '  BUILD_CMD     real build command to run when inputs changed'
+	@printf '%s\n' '  STATE_DIR     directory used to persist prior hashes'
+
+print-hash:
+	@$(PROJECT_HASH) $(CONFIG_FLAG) -u $(UNIT)
+
+list-files:
+	@$(PROJECT_HASH) $(CONFIG_FLAG) -u $(UNIT) --list-files
+
+explain:
+	@$(PROJECT_HASH) $(CONFIG_FLAG) -u $(UNIT) --explain
+
+build-if-changed:
+	@set -eu; \
+	current_hash="$$( $(PROJECT_HASH) $(CONFIG_FLAG) -u $(UNIT) )"; \
+	previous_hash=""; \
+	if [ -f "$(STATE_FILE)" ]; then \
+		previous_hash="$$(cat "$(STATE_FILE)")"; \
+	fi; \
+	if [ "$$current_hash" = "$$previous_hash" ]; then \
+		printf '%s\n' '[$(UNIT)] inputs unchanged; skip build'; \
+	else \
+		printf '%s\n' '[$(UNIT)] inputs changed; run build'; \
+		$(BUILD_CMD); \
+		mkdir -p "$(STATE_DIR)"; \
+		printf '%s\n' "$$current_hash" > "$(STATE_FILE)"; \
+	fi
+
+force-build:
+	@set -eu; \
+	printf '%s\n' '[$(UNIT)] force build'; \
+	$(BUILD_CMD); \
+	current_hash="$$( $(PROJECT_HASH) $(CONFIG_FLAG) -u $(UNIT) )"; \
+	mkdir -p "$(STATE_DIR)"; \
+	printf '%s\n' "$$current_hash" > "$(STATE_FILE)"
+
+clean-state:
+	@rm -f "$(STATE_FILE)"
